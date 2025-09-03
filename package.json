@@ -1,0 +1,45 @@
+{
+  "name": "vega-genai",
+  "description": "This project containes different Arvo modules for practice and demo",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5001",
+    "build": "tsc -b && vite build",
+    "start": "tsc -b && vite build && npx serve dist",
+    "preview": "vite preview",
+    "lint": "biome check --fix",
+    "format": "biome format --fix"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/react-is": "^19",
+    "@vitejs/plugin-react": "^4.4.1",
+    "globals": "^16.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  },
+  "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": ">=19"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-icons": "^5.5.0",
+    "react-is": "^19.1.0",
+    "react-router": "^7.8.0",
+    "tailwindcss": "4.0.0"
+  }
+}
