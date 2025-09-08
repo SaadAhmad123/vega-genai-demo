@@ -1,4 +1,4 @@
-# A technical overview for implementation of LLM Generated Data Visualizations
+# A Technical Overview For Implementation Of GenAI Data Visualizations
 
 The GenAI-powered data analysis has reached impressive capabilities, but **translating insights into visual formats within GenAI applications** remains a significant technical challenge. Current industry approaches using "ephemeral applications" - where AI generates and executes code in sandboxed environments - create unstable user experiences with frequent execution failures and substantial implementation complexity for custom GenAI applications.
 
@@ -260,22 +260,6 @@ This chart displays the monthly percentage data from January to June:
 
 > Extremely large datasets (e.g., over one million data points) may require additional optimization. Vega is not always the best fit for such scenarios, as rendering very large visualizations can be inherently challenging given current technology constraints. In these cases, teams should consider leveraging [Vega data sources](https://vega.github.io/vega/docs/data/) (e.g., JSON files, CSVs, or external databases) and techniques such as data aggregation, sampling, or pre-processing to ensure performance and usability.
 
-[TODO - Make this section better]
-#### Key Benfits
-
-The simplicity and expresiveness of this approach provided several strong key benefits:
-
-- **Strenght in simplicity:** This appraoch is uniquely simple yet powerfully expressive. It does not require any extensive systems engineering niother it require detailed context engineering. The software machine and LLMs both natively are able to hanlde, generate and interpret this specification which extensive nuance.
-
-- **AI Native:** Since the spec is understood natviely by GenAI models, they can answere detail and insightful question on the visualisation. To the USers these are chart but to LLM they are native string and textual data
-
-- **Agentic AI:** Since, this is a part of the LLM repsonse string and all LLMs understand the standard spec the coordination bettern agents is easy and the final output is a string as a result the state mangement is simpler
-
-- **Reduced implemetnation complexity:** The approiach is simple and most of the tools are alreadyt mature and available out of the box. The markdown render is available and vega renders are also available and all of the are production grade and proven already. Moreover, there is high level of cohesion in the FE and backend but very loose coupling making the system much more maintianable and reuduced technical debt. Moreover, due to the expresivne nature of vega and sementice verrsion process that evolution of the system mush more streramline and folloiwuinf the typical SDLC.
-
-- **Evolution** Moreover, due to the expresivne nature of vega and sementice verrsion process that evolution of the system mush more streramline and folloiwuinf the typical SDLC. Further more, due the backward compatirble natue of the spec the old chats are also useable and the rendering will happen for them zas well.
-
-
 #### Key Benefits of the Vega Standards-Based Approach
 
 The Vega JSON approach represents a significant advancement in GenAI-powered data visualization by leveraging mature open standards rather than custom implementations. This standards-based methodology delivers substantial advantages across technical, operational, and strategic dimensions.
@@ -308,7 +292,11 @@ While the Vega approach offers significant advantages, it is not a silver bullet
 
 - **Learning Curve:** Since Vega uses a domain-specific JSON specification, debugging complex visualizations may require knowledge and understanding of the Vega grammar. While modern AI systems like ChatGPT are highly capable at debugging Vega specifications, teams may still encounter scenarios requiring manual intervention. More significantly, if teams need to implement a Vega renderer from scratch, they must invest substantial time learning and understanding the specification before making meaningful progress.
 
-- **Performance Constraints** Vega natively does not provide optimizations for rendering extremely large datasets (e.g., more than 100,000 data points), which can cause significant browser strain and require bespoke solutions. While Vega performs excellently for reasonably large datasets, organizations dealing with massive data visualizations may need preprocessing strategies. Additionally, Vega is designed for static data snapshots rather than streaming updates, making it unsuitable for real-time applications like live stock graphs or continuous monitoring dashboards.
+- **Performance Constraints:** Vega natively does not provide optimizations for rendering extremely large datasets (e.g., more than 100,000 data points), which can cause significant browser strain and require bespoke solutions. While Vega performs excellently for reasonably large datasets, organizations dealing with massive data visualizations may need preprocessing strategies. Additionally, Vega is designed for static data snapshots rather than streaming updates, making it unsuitable for real-time applications like live stock graphs or continuous monitoring dashboards.
 
 Despite these limitations, the Vega approach remains optimal for the majority of GenAI enterprise data visualization use cases, particularly when organizations understand these constraints and design their systems accordingly.
+
+#### Data Integrity/ Hallucination Considerations
+
+While the Vega approach ensures consistent and lightweight data visualization operations, it does not inherently address the fundamental challenge of GenAI hallucination. The approach guarantees that valid data will be visualized correctly and consistently, but it cannot prevent the AI from generating inaccurate insights, misinterpreting data, or creating visualizations based on hallucinated data.
 
