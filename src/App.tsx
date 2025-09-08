@@ -1,5 +1,11 @@
+import { Chat } from './Chat';
 import './index.css';
 
 export default () => {
-  return <p>Hello world</p>;
+  return (
+    <div>
+      <p>Hello world</p>
+      <Chat />
+    </div>
+  );
 };
