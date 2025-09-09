@@ -1,7 +1,5 @@
 # A Technical Overview For Implementation Of GenAI Data Visualizations
 
-![Demo](./images/Demo.mov)
-
 The GenAI-powered data analysis has reached impressive capabilities, but **translating insights into visual formats within GenAI applications** remains a significant technical challenge. Current industry approaches using "ephemeral applications" - where AI generates and executes code in sandboxed environments - create unstable user experiences with frequent execution failures and substantial implementation complexity for custom GenAI applications.
 
 This article examines three approaches to AI-generated data visualization:
