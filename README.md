@@ -1,5 +1,7 @@
 # A Technical Overview For Implementation Of GenAI Data Visualizations
 
+![Demo](./images/Demo.mov)
+
 The GenAI-powered data analysis has reached impressive capabilities, but **translating insights into visual formats within GenAI applications** remains a significant technical challenge. Current industry approaches using "ephemeral applications" - where AI generates and executes code in sandboxed environments - create unstable user experiences with frequent execution failures and substantial implementation complexity for custom GenAI applications.
 
 This article examines three approaches to AI-generated data visualization:
@@ -300,3 +302,254 @@ Despite these limitations, the Vega approach remains optimal for the majority of
 
 While the Vega approach ensures consistent and lightweight data visualization operations, it does not inherently address the fundamental challenge of GenAI hallucination. The approach guarantees that valid data will be visualized correctly and consistently, but it cannot prevent the AI from generating inaccurate insights, misinterpreting data, or creating visualizations based on hallucinated data.
 
+## Implementation Guide: React, Vega, and OpenAI Integration
+
+The Vega approach demonstrates its practical viability through a straightforward implementation using React and OpenAI. This section provides detailed technical guidance for organizations evaluating this architectural pattern, complete with working code examples and production considerations.
+
+![Demo screenshot](images/Excalidraw_Whiteboard.png)
+
+### Getting Started
+
+**Prerequisites and Setup**
+
+Before beginning, ensure your development environment meets the following requirements:
+
+1. **Node.js Installation**
+```bash
+# Verify Node.js version (19+ required)
+node --version
+   
+# Install via Node Version Manager if needed
+nvm install 19
+nvm use 19
+```
+
+2. **Package Management**
+```bash
+# Install dependencies using PNPM
+pnpm install
+```
+
+3. **API Configuration**
+
+Create a `.env` file in the project root and add your OpenAI API key:
+
+```bash
+# Create environment configuration
+cp .env.sample .env
+# Edit .env file with your credentials
+```
+
+4. **Development Server**
+```bash
+# Start the local development server
+pnpm dev
+```
+The application will be accessible at `http://localhost:5001`
+
+### Core Implementation Components
+
+The technical implementation consists of three primary components that establish a reliable pipeline from AI generation to visual rendering. Each layer addresses specific architectural challenges while maintaining loose coupling for long-term maintainability.
+
+**1. System Prompt Configuration**
+
+The foundation of reliable Vega generation lies in precise prompt engineering. The system prompt instructs the AI model to generate properly formatted Vega specifications:
+
+```tsx
+// See `src/API/streamOpenAI.ts` for more details
+const systemPrompt: ChatMessage = {
+  role: 'developer',
+  content: `
+    Where possible, you are a data visualization specialist that creates charts using 
+    Vega-Lite or Vega specifications depending on complexity.
+    
+    CRITICAL FORMATTING REQUIREMENTS:
+    - Use Vega-Lite by default for all standard visualizations
+    - Encapsulate specifications within code blocks: \`\`\`json/vega_lite
+    - Use full Vega only for complex multi-view or interactive dashboards: \`\`\`json/vega
+    - Generate valid JSON without comments, trailing commas, or syntax errors
+    - Include meaningful titles, axis labels, and legends for clarity
+    
+    SPECIFICATION STANDARDS:
+    - Set minimum width: 600px, minimum height: 400px for readability
+    - Use appropriate data types (quantitative, ordinal, nominal, temporal)
+    - Apply consistent color schemes that ensure accessibility
+    - Include tooltips for interactive data exploration
+    
+    ERROR PREVENTION:
+    - Validate data field names match the provided dataset
+    - Ensure encoding channels (x, y, color, size) are properly configured
+    - Test complex aggregations before including them in specifications
+    
+    When users request modifications, generate complete new specifications rather than
+    attempting incremental changes that may introduce inconsistencies.
+  `,
+};
+```
+
+This prompt engineering approach addresses several critical challenges identified in production implementations. The emphasis on complete specification regeneration prevents the common problem where AI attempts to modify existing JSON structures and introduces syntax errors. Minimum dimensions prevent tiny, unreadable charts, while accessibility guidelines ensure visualizations remain useful across diverse user environments. These standards can be customized based on their specific design system requirements.
+
+**2. Vega Specification Parser and Renderer**
+
+The `VegaRenderer` component handles the parsing and rendering of AI-generated Vega specifications with robust error handling. This transforms AI-generated text into executable Vega specifications while providing comprehensive error boundaries that prevent application crashes. This component represents the critical interface between unpredictable AI output and deterministic rendering requirements.
+
+```tsx
+// See `src/components/ReMark/VegaRenderer.tsx` for more details
+import type { VisualizationSpec } from 'vega-embed';
+import { useState } from 'react';
+import { VegaEmbed } from 'react-vega';
+
+interface ParseResult {
+  value: VisualizationSpec & { width?: number; height?: number } | null;
+  error: Error | null;
+}
+
+const parseVegaSpec = (spec: object | string): ParseResult => {
+  try {
+    const parsedSpec = typeof spec === 'string' ? JSON.parse(spec) : spec;
+    return {
+      value: parsedSpec as VisualizationSpec & { width?: number; height?: number },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      value: null,
+      error: error as Error,
+    };
+  }
+};
+
+export const VegaRenderer: React.FC<{ spec: object | string }> = ({ spec }) => {
+  const [parsedSpec] = useState(() => parseVegaSpec(spec));
+
+  if (!parsedSpec.value) {
+    return (
+      <div className="max-w-[1200px] p-4 border border-red-300 rounded-xl bg-red-50">
+        <p className="text-red-700 font-medium">
+          Visualization Error: {parsedSpec.error?.message || 'Invalid chart specification'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[1200px] overflow-auto max-h-[800px] p-4 border border-gray-200 rounded-xl shadow-sm bg-white">
+      <VegaEmbed
+        spec={{
+          ...parsedSpec.value,
+          width: Math.max(parsedSpec.value.width ?? 0, 600),
+          height: Math.max(parsedSpec.value.height ?? 0, 400),
+        }}
+        options={{
+          mode: 'vega-lite',
+          theme: 'carbonwhite',
+          renderer: 'svg',
+          actions: false, // Disable default Vega actions for cleaner UI
+        }}
+        onError={(error) => console.error('Vega rendering error:', error)}
+      />
+    </div>
+  );
+};
+```
+
+**3. Markdown Integration with Custom Code Block Handling**
+
+The `ReMark` component extends standard markdown rendering to detect and process Vega code blocks automatically. The component seamlessly embeds Vega visualizations within UI/UX while maintaining the flexibility to handle diverse content types. This component demonstrates how the Vega approach integrates naturally with existing markdown rendering patterns.
+
+```tsx
+// See `src/components/ReMark/index.tsx` for more details
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { VegaRenderer } from './VegaRenderer';
+
+export const ReMark: React.FC<{ 
+  content: string | null; 
+  showVegaCode?: boolean 
+}> = ({ content, showVegaCode = false }) => {
+  const [displayCode, setDisplayCode] = useState(showVegaCode);
+
+  if (!content) return null;
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Enhanced table styling
+        table: ({ ...props }) => (
+          <div className="overflow-auto my-4">
+            <table className="border-collapse border border-gray-300 bg-white min-w-full" {...props} />
+          </div>
+        ),
+        
+        // Custom code block handler for Vega specifications
+        code: ({ children, className }) => {
+          // Handle inline code
+          if (!className) {
+            return (
+              <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                {children}
+              </code>
+            );
+          }
+
+          // Detect Vega/Vega-Lite code blocks
+          const isVegaSpec = className === 'language-json/vega_lite' || 
+                            className === 'language-json/vega';
+
+          if (isVegaSpec) {
+            return (
+              <div className="my-6">
+                {/* Toggle button for showing/hiding raw JSON */}
+                <div className="mb-2">
+                  <button
+                    onClick={() => setDisplayCode(!displayCode)}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {displayCode ? 'Hide' : 'Show'} Vega Specification
+                  </button>
+                </div>
+
+                {/* Conditional rendering of code or visualization */}
+                {displayCode ? (
+                  <div className="relative bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="text-xs text-gray-500 mb-2">
+                      {className.replace('language-', '')}
+                    </div>
+                    <pre className="overflow-auto text-sm">
+                      <code>{children}</code>
+                    </pre>
+                  </div>
+                ) : (
+                  <VegaRenderer spec={children as string} />
+                )}
+              </div>
+            );
+          }
+
+          // Handle other code blocks normally
+          return (
+            <div className="relative bg-gray-50 border border-gray-200 rounded-lg p-4 my-4">
+              <div className="text-xs text-gray-500 mb-2">
+                {className?.replace('language-', '') || 'code'}
+              </div>
+              <pre className="overflow-auto text-sm">
+                <code>{children}</code>
+              </pre>
+            </div>
+          );
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+};
+```
+
+The collapsible code block functionality particularly benefits technical users who need to examine large datasets or complex specifications without overwhelming the interface. The placeholder state provides clear feedback during streaming responses, maintaining user confidence during longer AI processing times.
+
+### Next Steps
+
+To explore the complete implementation, including additional utility components, API integration patterns, and styling configurations, examine the full source code repository. The modular architecture makes it straightforward to adapt this approach to different frontend frameworks or integrate additional AI providers beyond OpenAI.
